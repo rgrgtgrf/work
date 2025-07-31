@@ -1,0 +1,65 @@
+from crewai import Agent, Crew, Process, Task
+from crewai.project import CrewBase, agent, crew, task
+import agentstack
+
+
+@CrewBase
+class WebscraperCrew:
+    """web_scraper crew（已移除 Firecrawl）"""
+
+    # ---------------------- Agents ---------------------- #
+    @agent
+    def web_scraper(self) -> Agent:
+        return Agent(
+            config=self.agents_config["web_scraper"],
+            # 使用 Code‑Interpreter + Neon，彻底避开 Firecrawl
+            tools=[*agentstack.tools.get("code-interpreter", []), *agentstack.tools["neon"]],
+            verbose=True,
+        )
+
+    @agent
+    def data_extractor(self) -> Agent:
+        return Agent(
+            config=self.agents_config["data_extractor"],
+            tools=[*agentstack.tools.get("code-interpreter", []), *agentstack.tools["neon"]],
+            verbose=True,
+        )
+
+    @agent
+    def content_storer(self) -> Agent:
+        return Agent(
+            config=self.agents_config["content_storer"],
+            # 这里只需要数据库相关工具即可
+            tools=[*agentstack.tools["neon"]],
+            verbose=True,
+        )
+
+    # ---------------------- Tasks ---------------------- #
+    @task
+    def scrape_site(self) -> Task:
+        return Task(
+            config=self.tasks_config["scrape_site"],
+        )
+
+    @task
+    def extract(self) -> Task:
+        return Task(
+            config=self.tasks_config["extract"],
+        )
+
+    @task
+    def store(self) -> Task:
+        return Task(
+            config=self.tasks_config["store"],
+        )
+
+    # ---------------------- Crew ---------------------- #
+    @crew
+    def crew(self) -> Crew:
+        """Creates the Webscraper crew"""
+        return Crew(
+            agents=self.agents,
+            tasks=self.tasks,
+            process=Process.sequential,
+            verbose=True,
+        )
