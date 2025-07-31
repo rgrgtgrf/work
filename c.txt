@@ -1,40 +1,38 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 import agentstack
+from crewai_tools import CodeInterpreterTool
 
 # -------------------------------------------------------
-# 获取 Code-Interpreter 工具句柄（兼容不同注册名）
+# 单例：CodeInterpreterTool 以 unsafe_mode=True 运行，
+#      直接在本机解释 Python，无需 Docker。
 # -------------------------------------------------------
-_ci_tools = []
-for _name in ("code_interpreter", "code-interpreter", "codeInterpreter"):
-    try:
-        _ci_tools = agentstack.tools[_name]
-        break
-    except KeyError:
-        continue
+code_interpreter = CodeInterpreterTool(unsafe_mode=True)
 
 # -------------------------------------------------------
-# 实用函数：剥离配置里潜在的 "tools" / "tool_names" 字段，
-# 以免 YAML 里仍残留 firecrawl / code-interpreter 字符串导致报错。
+# 实用函数：移除 YAML 中可能残留的 tools/tool_names 字段
 # -------------------------------------------------------
 
 def _clean_cfg(raw_cfg: dict) -> dict:
-    cfg = dict(raw_cfg)  # 浅拷贝
+    cfg = dict(raw_cfg)
     cfg.pop("tools", None)
     cfg.pop("tool_names", None)
+    # 确保允许执行代码
+    cfg.setdefault("allow_code_execution", True)
+    cfg.setdefault("code_execution_mode", "unsafe")
     return cfg
 
 
 @CrewBase
 class WebscraperCrew:
-    """web_scraper crew（Firecrawl 全面移除，使用 Code-Interpreter + Neon）"""
+    """web_scraper crew（Firecrawl 全移除；CodeInterpreterTool 走 unsafe，本机执行）"""
 
     # ---------------------- Agents ---------------------- #
     @agent
     def web_scraper(self) -> Agent:
         return Agent(
             config=_clean_cfg(self.agents_config["web_scraper"]),
-            tools=[*_ci_tools, *agentstack.tools["neon"]],
+            tools=[code_interpreter, *agentstack.tools["neon"]],
             verbose=True,
         )
 
@@ -42,7 +40,7 @@ class WebscraperCrew:
     def data_extractor(self) -> Agent:
         return Agent(
             config=_clean_cfg(self.agents_config["data_extractor"]),
-            tools=[*_ci_tools, *agentstack.tools["neon"]],
+            tools=[code_interpreter, *agentstack.tools["neon"]],
             verbose=True,
         )
 
@@ -50,7 +48,7 @@ class WebscraperCrew:
     def content_storer(self) -> Agent:
         return Agent(
             config=_clean_cfg(self.agents_config["content_storer"]),
-            tools=[*agentstack.tools["neon"]],  # 存储只需数据库相关
+            tools=[*agentstack.tools["neon"]],
             verbose=True,
         )
 
