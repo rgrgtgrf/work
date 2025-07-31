@@ -4,20 +4,16 @@ import agentstack
 from crewai_tools import CodeInterpreterTool
 
 # -------------------------------------------------------
-# 单例：CodeInterpreterTool 以 unsafe_mode=True 运行，
-#      直接在本机解释 Python，无需 Docker。
+# Code Interpreter in unsafe mode (no Docker dependency)
 # -------------------------------------------------------
 code_interpreter = CodeInterpreterTool(unsafe_mode=True)
 
-# -------------------------------------------------------
-# 实用函数：移除 YAML 中可能残留的 tools/tool_names 字段
-# -------------------------------------------------------
 
-def _clean_cfg(raw_cfg: dict) -> dict:
-    cfg = dict(raw_cfg)
+def _clean_cfg(cfg: dict) -> dict:
+    """Strip legacy tool fields & enforce code‑exec flags."""
+    cfg = dict(cfg)
     cfg.pop("tools", None)
     cfg.pop("tool_names", None)
-    # 确保允许执行代码
     cfg.setdefault("allow_code_execution", True)
     cfg.setdefault("code_execution_mode", "unsafe")
     return cfg
@@ -25,9 +21,9 @@ def _clean_cfg(raw_cfg: dict) -> dict:
 
 @CrewBase
 class WebscraperCrew:
-    """web_scraper crew（Firecrawl 全移除；CodeInterpreterTool 走 unsafe，本机执行）"""
+    """Crew definition with Firecrawl removed; uses Code‑Interpreter + Neon."""
 
-    # ---------------------- Agents ---------------------- #
+    # -------------------- Agents -------------------- #
     @agent
     def web_scraper(self) -> Agent:
         return Agent(
@@ -52,7 +48,7 @@ class WebscraperCrew:
             verbose=True,
         )
 
-    # ---------------------- Tasks ---------------------- #
+    # -------------------- Tasks -------------------- #
     @task
     def scrape_site(self) -> Task:
         return Task(config=self.tasks_config["scrape_site"])
@@ -65,7 +61,7 @@ class WebscraperCrew:
     def store(self) -> Task:
         return Task(config=self.tasks_config["store"])
 
-    # ---------------------- Crew ---------------------- #
+    # -------------------- Crew -------------------- #
     @crew
     def crew(self) -> Crew:
         return Crew(
