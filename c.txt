@@ -2,25 +2,38 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 import agentstack
 
-# 预处理：兼容不同名字的 Code‑Interpreter key，避免 get() 调用
+# -------------------------------------------------------
+# 获取 Code-Interpreter 工具句柄（兼容不同注册名）
+# -------------------------------------------------------
 _ci_tools = []
-for _name in ("code-interpreter", "code_interpreter", "codeInterpreter"):
+for _name in ("code_interpreter", "code-interpreter", "codeInterpreter"):
     try:
         _ci_tools = agentstack.tools[_name]
         break
     except KeyError:
         continue
 
+# -------------------------------------------------------
+# 实用函数：剥离配置里潜在的 "tools" / "tool_names" 字段，
+# 以免 YAML 里仍残留 firecrawl / code-interpreter 字符串导致报错。
+# -------------------------------------------------------
+
+def _clean_cfg(raw_cfg: dict) -> dict:
+    cfg = dict(raw_cfg)  # 浅拷贝
+    cfg.pop("tools", None)
+    cfg.pop("tool_names", None)
+    return cfg
+
 
 @CrewBase
 class WebscraperCrew:
-    """web_scraper crew（彻底移除 Firecrawl，改用 Code‑Interpreter + Neon）"""
+    """web_scraper crew（Firecrawl 全面移除，使用 Code-Interpreter + Neon）"""
 
     # ---------------------- Agents ---------------------- #
     @agent
     def web_scraper(self) -> Agent:
         return Agent(
-            config=self.agents_config["web_scraper"],
+            config=_clean_cfg(self.agents_config["web_scraper"]),
             tools=[*_ci_tools, *agentstack.tools["neon"]],
             verbose=True,
         )
@@ -28,7 +41,7 @@ class WebscraperCrew:
     @agent
     def data_extractor(self) -> Agent:
         return Agent(
-            config=self.agents_config["data_extractor"],
+            config=_clean_cfg(self.agents_config["data_extractor"]),
             tools=[*_ci_tools, *agentstack.tools["neon"]],
             verbose=True,
         )
@@ -36,7 +49,7 @@ class WebscraperCrew:
     @agent
     def content_storer(self) -> Agent:
         return Agent(
-            config=self.agents_config["content_storer"],
+            config=_clean_cfg(self.agents_config["content_storer"]),
             tools=[*agentstack.tools["neon"]],  # 存储只需数据库相关
             verbose=True,
         )
@@ -44,26 +57,19 @@ class WebscraperCrew:
     # ---------------------- Tasks ---------------------- #
     @task
     def scrape_site(self) -> Task:
-        return Task(
-            config=self.tasks_config["scrape_site"],
-        )
+        return Task(config=self.tasks_config["scrape_site"])
 
     @task
     def extract(self) -> Task:
-        return Task(
-            config=self.tasks_config["extract"],
-        )
+        return Task(config=self.tasks_config["extract"])
 
     @task
     def store(self) -> Task:
-        return Task(
-            config=self.tasks_config["store"],
-        )
+        return Task(config=self.tasks_config["store"])
 
     # ---------------------- Crew ---------------------- #
     @crew
     def crew(self) -> Crew:
-        """Creates the Webscraper crew"""
         return Crew(
             agents=self.agents,
             tasks=self.tasks,
