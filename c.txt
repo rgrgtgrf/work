@@ -2,18 +2,26 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 import agentstack
 
+# 预处理：兼容不同名字的 Code‑Interpreter key，避免 get() 调用
+_ci_tools = []
+for _name in ("code-interpreter", "code_interpreter", "codeInterpreter"):
+    try:
+        _ci_tools = agentstack.tools[_name]
+        break
+    except KeyError:
+        continue
+
 
 @CrewBase
 class WebscraperCrew:
-    """web_scraper crew（已移除 Firecrawl）"""
+    """web_scraper crew（彻底移除 Firecrawl，改用 Code‑Interpreter + Neon）"""
 
     # ---------------------- Agents ---------------------- #
     @agent
     def web_scraper(self) -> Agent:
         return Agent(
             config=self.agents_config["web_scraper"],
-            # 使用 Code‑Interpreter + Neon，彻底避开 Firecrawl
-            tools=[*agentstack.tools.get("code-interpreter", []), *agentstack.tools["neon"]],
+            tools=[*_ci_tools, *agentstack.tools["neon"]],
             verbose=True,
         )
 
@@ -21,7 +29,7 @@ class WebscraperCrew:
     def data_extractor(self) -> Agent:
         return Agent(
             config=self.agents_config["data_extractor"],
-            tools=[*agentstack.tools.get("code-interpreter", []), *agentstack.tools["neon"]],
+            tools=[*_ci_tools, *agentstack.tools["neon"]],
             verbose=True,
         )
 
@@ -29,8 +37,7 @@ class WebscraperCrew:
     def content_storer(self) -> Agent:
         return Agent(
             config=self.agents_config["content_storer"],
-            # 这里只需要数据库相关工具即可
-            tools=[*agentstack.tools["neon"]],
+            tools=[*agentstack.tools["neon"]],  # 存储只需数据库相关
             verbose=True,
         )
 
