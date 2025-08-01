@@ -8,20 +8,33 @@ from bs4 import BeautifulSoup
 # 定义自定义工具，继承 BaseTool 并实现 _run 方法
 class SimpleFetchTool(BaseTool):
     name: str = "simple_fetch"
-    description: str = "Fetch HTML content from a URL using requests"
+    description: str = "Fetch HTML content from a URL using requests (limited)"
+
+    def __init__(self, max_chars: int = 1000):
+        # 限制返回内容长度，默认 1000 字符
+        self.max_chars = max_chars
+        super().__init__()
 
     def _run(self, url: str) -> str:
         resp = requests.get(url, timeout=15)
         resp.raise_for_status()
-        return resp.text
+        text = resp.text
+        # 截断过长内容，避免超出上下文长度
+        return text[: self.max_chars]
 
 class ParseTextTool(BaseTool):
     name: str = "parse_text"
     description: str = "Extract plain text from HTML using BeautifulSoup"
 
+    def __init__(self, max_chars: int = 1000):
+        self.max_chars = max_chars
+        super().__init__()
+
     def _run(self, html: str) -> str:
         soup = BeautifulSoup(html, "html.parser")
-        return soup.get_text()
+        text = soup.get_text()
+        # 同样截断文本
+        return text[: self.max_chars]
 
 @CrewBase
 class WebscraperCrew:
@@ -29,17 +42,23 @@ class WebscraperCrew:
 
     @agent
     def web_scraper(self) -> Agent:
+        # 从 agents_config 中读取最大字符数配置
+        max_chars = self.agents_config["web_scraper"].get("max_chars", 1000)
+        fetch_tool = SimpleFetchTool(max_chars=max_chars)
         return Agent(
             config=self.agents_config["web_scraper"],
-            tools=[SimpleFetchTool()],
+            tools=[fetch_tool],
             verbose=True,
         )
 
     @agent
     def data_extractor(self) -> Agent:
+        # 从 agents_config 中读取最大字符数配置
+        extractor_args = {"max_chars": self.agents_config["data_extractor"].get("max_chars", 1000)}
+        extractor_tool = ParseTextTool(**extractor_args)
         return Agent(
             config=self.agents_config["data_extractor"],
-            tools=[ParseTextTool()],
+            tools=[extractor_tool],
             verbose=True,
         )
 
