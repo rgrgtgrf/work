@@ -1,6 +1,6 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
-from crewai.tools import Tool
+from crewai.tools import BaseTool
 import requests
 from bs4 import BeautifulSoup
 
@@ -26,7 +26,7 @@ class WebscraperCrew:
     @agent
     def web_scraper(self) -> Agent:
         # 将 simple_fetch 方法包装为 BaseTool 实例
-        fetch_tool = Tool.from_callable(
+        fetch_tool = BaseTool.from_callable(
             name="simple_fetch",
             func=self.simple_fetch,
             description="Fetch HTML content from a URL using requests",
@@ -41,7 +41,7 @@ class WebscraperCrew:
     @agent
     def data_extractor(self) -> Agent:
         # 将 parse_text 方法包装为 BaseTool 实例
-        extractor_tool = Tool.from_callable(
+        extractor_tool = BaseTool.from_callable(
             name="parse_text",
             func=self.parse_text,
             description="Extract plain text from HTML using BeautifulSoup",
