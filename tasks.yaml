@@ -1,0 +1,23 @@
+# src/config/tasks.yaml
+
+scrape_site:
+  description: Fetch the guide page in Markdown format.
+  expected_output: The complete Markdown content of https://neon.com/guides
+  agent: web_scraper
+  input:
+    url: "https://neon.com/guides"
+
+extract:
+  description: Extract up to 20 link entries (titles) from the Markdown.
+  expected_output: A JSON array of up to 20 objects, each with title, author, date
+  agent: data_extractor
+  input:
+    markdown: "{{scrape_site.output}}"
+
+store:
+  description: Store extracted entries into Neon Postgres.
+  expected_output: A JSON array of all rows inserted into the 'posts' table
+  agent: content_storer
+  input:
+    posts: "{{extract.output}}"
+
