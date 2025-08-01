@@ -8,26 +8,22 @@ from bs4 import BeautifulSoup
 # 定义自定义工具，继承 BaseTool 并实现 _run 方法
 class SimpleFetchTool(BaseTool):
     name: str = "simple_fetch"
-    description: str = "Fetch HTML content from a URL using requests (limited)"
-    max_chars: int = 1000  # 限制返回内容长度，默认 1000 字符
+    description: str = "Fetch HTML content from a URL using requests (limited to 1000 chars)"
 
     def _run(self, url: str) -> str:
         resp = requests.get(url, timeout=15)
         resp.raise_for_status()
-        text = resp.text
-        # 截断过长内容，避免超出上下文长度
-        return text[: self.max_chars]
+        # 读取并截断为 1000 字符
+        return resp.text[:1000]
 
 class ParseTextTool(BaseTool):
     name: str = "parse_text"
-    description: str = "Extract plain text from HTML using BeautifulSoup"
-    max_chars: int = 1000  # 限制返回文本长度，默认 1000 字符
+    description: str = "Extract plain text from HTML using BeautifulSoup (limited to 1000 chars)"
 
     def _run(self, html: str) -> str:
         soup = BeautifulSoup(html, "html.parser")
-        text = soup.get_text()
-        # 同样截断文本
-        return text[: self.max_chars]
+        # 获取并截断为 1000 字符
+        return soup.get_text()[:1000]
 
 @CrewBase
 class WebscraperCrew:
@@ -35,23 +31,18 @@ class WebscraperCrew:
 
     @agent
     def web_scraper(self) -> Agent:
-        # 从 agents_config 中读取最大字符数配置
-        max_chars = self.agents_config["web_scraper"].get("max_chars", SimpleFetchTool.max_chars)
-        fetch_tool = SimpleFetchTool(max_chars=max_chars)
+        # 使用固定限制工具
         return Agent(
             config=self.agents_config["web_scraper"],
-            tools=[fetch_tool],
+            tools=[SimpleFetchTool()],
             verbose=True,
         )
 
     @agent
     def data_extractor(self) -> Agent:
-        # 从 agents_config 中读取最大字符数配置
-        max_chars = self.agents_config["data_extractor"].get("max_chars", ParseTextTool.max_chars)
-        extractor_tool = ParseTextTool(max_chars=max_chars)
         return Agent(
             config=self.agents_config["data_extractor"],
-            tools=[extractor_tool],
+            tools=[ParseTextTool()],
             verbose=True,
         )
 
