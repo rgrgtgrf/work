@@ -1,5 +1,6 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
+from crewai.tools import Tool
 import requests
 from bs4 import BeautifulSoup
 
@@ -9,8 +10,7 @@ class WebscraperCrew:
 
     def simple_fetch(self, url: str) -> str:
         """
-        基于 requests + BeautifulSoup 的简单爬虫工具
-        返回原始 HTML 文本
+        基于 requests 的简单爬虫方法，返回页面 HTML
         """
         resp = requests.get(url, timeout=15)
         resp.raise_for_status()
@@ -18,30 +18,43 @@ class WebscraperCrew:
 
     def parse_text(self, html: str) -> str:
         """
-        将 HTML 转为纯文本
+        基于 BeautifulSoup 的文本提取方法，将 HTML 转为纯文本
         """
         soup = BeautifulSoup(html, "html.parser")
         return soup.get_text()
 
     @agent
     def web_scraper(self) -> Agent:
+        # 将 simple_fetch 方法包装为 BaseTool 实例
+        fetch_tool = Tool.from_callable(
+            name="simple_fetch",
+            func=self.simple_fetch,
+            description="Fetch HTML content from a URL using requests",
+            args_schema={"url": str},
+        )
         return Agent(
             config=self.agents_config["web_scraper"],
-            tools=[self.simple_fetch],  # 只需传入 URL，返回 HTML
+            tools=[fetch_tool],
             verbose=True,
         )
 
     @agent
     def data_extractor(self) -> Agent:
+        # 将 parse_text 方法包装为 BaseTool 实例
+        extractor_tool = Tool.from_callable(
+            name="parse_text",
+            func=self.parse_text,
+            description="Extract plain text from HTML using BeautifulSoup",
+            args_schema={"html": str},
+        )
         return Agent(
             config=self.agents_config["data_extractor"],
-            tools=[self.parse_text],  # 将 HTML 转为纯文本
+            tools=[extractor_tool],
             verbose=True,
         )
 
     @agent
     def content_storer(self) -> Agent:
-        # 假设 neon 工具配置不变
         return Agent(
             config=self.agents_config["content_storer"],
             tools=[*agentstack.tools["neon"]],
