@@ -9,11 +9,7 @@ from bs4 import BeautifulSoup
 class SimpleFetchTool(BaseTool):
     name: str = "simple_fetch"
     description: str = "Fetch HTML content from a URL using requests (limited)"
-
-    def __init__(self, max_chars: int = 1000):
-        # 限制返回内容长度，默认 1000 字符
-        self.max_chars = max_chars
-        super().__init__()
+    max_chars: int = 1000  # 限制返回内容长度，默认 1000 字符
 
     def _run(self, url: str) -> str:
         resp = requests.get(url, timeout=15)
@@ -25,10 +21,7 @@ class SimpleFetchTool(BaseTool):
 class ParseTextTool(BaseTool):
     name: str = "parse_text"
     description: str = "Extract plain text from HTML using BeautifulSoup"
-
-    def __init__(self, max_chars: int = 1000):
-        self.max_chars = max_chars
-        super().__init__()
+    max_chars: int = 1000  # 限制返回文本长度，默认 1000 字符
 
     def _run(self, html: str) -> str:
         soup = BeautifulSoup(html, "html.parser")
@@ -43,7 +36,7 @@ class WebscraperCrew:
     @agent
     def web_scraper(self) -> Agent:
         # 从 agents_config 中读取最大字符数配置
-        max_chars = self.agents_config["web_scraper"].get("max_chars", 1000)
+        max_chars = self.agents_config["web_scraper"].get("max_chars", SimpleFetchTool.max_chars)
         fetch_tool = SimpleFetchTool(max_chars=max_chars)
         return Agent(
             config=self.agents_config["web_scraper"],
@@ -54,8 +47,8 @@ class WebscraperCrew:
     @agent
     def data_extractor(self) -> Agent:
         # 从 agents_config 中读取最大字符数配置
-        extractor_args = {"max_chars": self.agents_config["data_extractor"].get("max_chars", 1000)}
-        extractor_tool = ParseTextTool(**extractor_args)
+        max_chars = self.agents_config["data_extractor"].get("max_chars", ParseTextTool.max_chars)
+        extractor_tool = ParseTextTool(max_chars=max_chars)
         return Agent(
             config=self.agents_config["data_extractor"],
             tools=[extractor_tool],
