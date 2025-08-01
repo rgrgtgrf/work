@@ -1,52 +1,45 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
+from crewai.tools import BaseTool
 import requests
 from bs4 import BeautifulSoup
+
+# 定义自定义工具，继承 BaseTool 并实现 _run 方法
+class SimpleFetchTool(BaseTool):
+    name = "simple_fetch"
+    description = "Fetch HTML content from a URL using requests"
+
+    def _run(self, url: str) -> str:
+        resp = requests.get(url, timeout=15)
+        resp.raise_for_status()
+        return resp.text
+
+class ParseTextTool(BaseTool):
+    name = "parse_text"
+    description = "Extract plain text from HTML using BeautifulSoup"
+
+    def _run(self, html: str) -> str:
+        soup = BeautifulSoup(html, "html.parser")
+        return soup.get_text()
 
 @CrewBase
 class WebscraperCrew:
     """web_scraper crew"""
 
-    def simple_fetch(self, url: str) -> str:
-        """
-        基于 requests 的简单爬虫方法，返回页面 HTML
-        """
-        resp = requests.get(url, timeout=15)
-        resp.raise_for_status()
-        return resp.text
-
-    def parse_text(self, html: str) -> str:
-        """
-        基于 BeautifulSoup 的文本提取方法，将 HTML 转为纯文本
-        """
-        soup = BeautifulSoup(html, "html.parser")
-        return soup.get_text()
-
     @agent
     def web_scraper(self) -> Agent:
-        # 使用字典定义工具以符合校验
-        fetch_tool = {
-            "name": "simple_fetch",
-            "func": self.simple_fetch,
-            "description": "Fetch HTML content from a URL using requests",
-        }
+        # 直接使用工具实例
         return Agent(
             config=self.agents_config["web_scraper"],
-            tools=[fetch_tool],
+            tools=[SimpleFetchTool()],
             verbose=True,
         )
 
     @agent
     def data_extractor(self) -> Agent:
-        # 使用字典定义工具以符合校验
-        extractor_tool = {
-            "name": "parse_text",
-            "func": self.parse_text,
-            "description": "Extract plain text from HTML using BeautifulSoup",
-        }
         return Agent(
             config=self.agents_config["data_extractor"],
-            tools=[extractor_tool],
+            tools=[ParseTextTool()],
             verbose=True,
         )
 
