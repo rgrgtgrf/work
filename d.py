@@ -25,12 +25,11 @@ class WebscraperCrew:
 
     @agent
     def web_scraper(self) -> Agent:
-        # 将 simple_fetch 方法包装为 BaseTool 实例
-        fetch_tool = BaseTool.from_callable(
+        # 直接创建 BaseTool 实例
+        fetch_tool = BaseTool(
             name="simple_fetch",
             func=self.simple_fetch,
-            description="Fetch HTML content from a URL using requests",
-            args_schema={"url": str},
+            description="Fetch HTML content from a URL",
         )
         return Agent(
             config=self.agents_config["web_scraper"],
@@ -40,12 +39,11 @@ class WebscraperCrew:
 
     @agent
     def data_extractor(self) -> Agent:
-        # 将 parse_text 方法包装为 BaseTool 实例
-        extractor_tool = BaseTool.from_callable(
+        # 直接创建 BaseTool 实例
+        extractor_tool = BaseTool(
             name="parse_text",
             func=self.parse_text,
-            description="Extract plain text from HTML using BeautifulSoup",
-            args_schema={"html": str},
+            description="Extract plain text from HTML",
         )
         return Agent(
             config=self.agents_config["data_extractor"],
