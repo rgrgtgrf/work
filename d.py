@@ -6,8 +6,8 @@ from bs4 import BeautifulSoup
 
 # 定义自定义工具，继承 BaseTool 并实现 _run 方法
 class SimpleFetchTool(BaseTool):
-    name = "simple_fetch"
-    description = "Fetch HTML content from a URL using requests"
+    name: str = "simple_fetch"
+    description: str = "Fetch HTML content from a URL using requests"
 
     def _run(self, url: str) -> str:
         resp = requests.get(url, timeout=15)
@@ -15,8 +15,8 @@ class SimpleFetchTool(BaseTool):
         return resp.text
 
 class ParseTextTool(BaseTool):
-    name = "parse_text"
-    description = "Extract plain text from HTML using BeautifulSoup"
+    name: str = "parse_text"
+    description: str = "Extract plain text from HTML using BeautifulSoup"
 
     def _run(self, html: str) -> str:
         soup = BeautifulSoup(html, "html.parser")
@@ -28,7 +28,6 @@ class WebscraperCrew:
 
     @agent
     def web_scraper(self) -> Agent:
-        # 直接使用工具实例
         return Agent(
             config=self.agents_config["web_scraper"],
             tools=[SimpleFetchTool()],
