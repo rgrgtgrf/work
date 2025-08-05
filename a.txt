@@ -1,60 +1,6 @@
-from crewai import Agent, Crew, Process, Task
-from crewai.project import CrewBase, agent, crew, task
-import agentstack
+AGENTOPS_API_KEY=cceea0f2-6a31-4a37-8b26-4b80004b12a2
+DEEPSEEK_API_KEY=sk-ea998f8c85bd487c9078b3e4c41aea59
 
-
-@CrewBase
-class WebscraperCrew:
-    """web_scraper crew"""
-
-    @agent
-    def web_scraper(self) -> Agent:
-        return Agent(
-            config=self.agents_config["web_scraper"],
-            tools=[*agentstack.tools["firecrawl"]],
-            verbose=True,
-        )
-
-    @agent
-    def data_extractor(self) -> Agent:
-        return Agent(
-            config=self.agents_config["data_extractor"],
-            tools=[],
-            verbose=True,
-        )
-
-    @agent
-    def content_storer(self) -> Agent:
-        return Agent(
-            config=self.agents_config["content_storer"],
-            tools=[*agentstack.tools["neon"]],
-            verbose=True,
-        )
-
-    @task
-    def scrape_site(self) -> Task:
-        return Task(
-            config=self.tasks_config["scrape_site"],
-        )
-
-    @task
-    def extract(self) -> Task:
-        return Task(
-            config=self.tasks_config["extract"],
-        )
-
-    @task
-    def store(self) -> Task:
-        return Task(
-            config=self.tasks_config["store"],
-        )
-
-    @crew
-    def crew(self) -> Crew:
-        """Creates the Test crew"""
-        return Crew(
-            agents=self.agents,
-            tasks=self.tasks,
-            process=Process.sequential,
-            verbose=True,
-        )
+# Tools
+FIRECRAWL_API_KEY="fc-3de934e7946240a68a5657d0c3dbcd86"
+NEON_API_KEY="napi_118jw7yvwqq8cs1n0j09ah4o5jdmbs8vq6vrkwa506v3ehwlapjb1kn85vwxryon"
