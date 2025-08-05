@@ -1,60 +1,21 @@
-from crewai import Agent, Crew, Process, Task
-from crewai.project import CrewBase, agent, crew, task
-import agentstack
-
-
-@CrewBase
-class WebscraperCrew:
-    """web_scraper crew"""
-
-    @agent
-    def web_scraper(self) -> Agent:
-        return Agent(
-            config=self.agents_config["web_scraper"],
-            tools=[*agentstack.tools["firecrawl"]],
-            verbose=True,
-        )
-
-    @agent
-    def data_extractor(self) -> Agent:
-        return Agent(
-            config=self.agents_config["data_extractor"],
-            tools=[],
-            verbose=True,
-        )
-
-    @agent
-    def content_storer(self) -> Agent:
-        return Agent(
-            config=self.agents_config["content_storer"],
-            tools=[*agentstack.tools["neon"]],
-            verbose=True,
-        )
-
-    @task
-    def scrape_site(self) -> Task:
-        return Task(
-            config=self.tasks_config["scrape_site"],
-        )
-
-    @task
-    def extract(self) -> Task:
-        return Task(
-            config=self.tasks_config["extract"],
-        )
-
-    @task
-    def store(self) -> Task:
-        return Task(
-            config=self.tasks_config["store"],
-        )
-
-    @crew
-    def crew(self) -> Crew:
-        """Creates the Test crew"""
-        return Crew(
-            agents=self.agents,
-            tasks=self.tasks,
-            process=Process.sequential,
-            verbose=True,
-        )
+scrape_site:
+  description: >-
+    Fetch the content of https://neon.com/guides in markdown format. Ensure accurate and complete retrieval of website content.
+  expected_output: >-
+    The complete content of the website https://neon.com/guides, formatted in markdown.
+  agent: >-
+    web_scraper
+extract:
+  description: >-
+    Analyze the provided website content and extract a structured list of blog post titles, author names, and publication dates. Limit the extraction to the first 20 blog posts.
+  expected_output: >-
+    A list of blog post titles, author names, and publication dates extracted from the website content.
+  agent: >-
+    data_extractor
+store:
+  description: >-
+    Store the extracted blog post data into a Postgres database within Neon. Create a table named 'posts' and corresponding schema for the posts and insert them. After inserting the data, formulate and test an SQL query to retrieve all inserted data. Provide the tested SQL query as the output.
+  expected_output: >-
+    A valid and tested SQL query that retrieves all data inserted into the 'posts' table in the Neon database.
+  agent: >-
+    content_storer
